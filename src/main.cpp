@@ -20,9 +20,6 @@
 #define MQTT_MAX_PACKET_SIZE 512
 #define MQTT_KEEPALIVE 60
 
-// Clock in Status bar
-#define M5EZ_CLOCK 1
-
 // RGB M5 Base
 #define M5STACK_FIRE_NEO_NUM_LEDS 10
 #define M5STACK_FIRE_NEO_DATA_PIN 15
@@ -116,7 +113,7 @@ void beep_update(){
 }
 
 // Screen Methods
-void screen_on(int duration=10000){
+void screen_on(int duration=30000){
   screenTimeout = duration;
   M5.Lcd.wakeup();
   M5.Lcd.setBrightness(50);
@@ -227,7 +224,7 @@ void reconnect() {
       WiFi.begin(ssid, pass);
     }
     Serial.print("Attempting MQTT connection...");
-   if (client.connect(mqtt_clientId,mqtt_user,mqtt_pass)) {
+   if (client.connect(mqtt_clientId, mqtt_user, mqtt_pass, willTopic, willQoS, willRetain, willMessage)) {
       Serial.println("connected");
       client.subscribe(mqtt_state_topic);
     } else {
@@ -237,6 +234,8 @@ void reconnect() {
       delay(5000);
     }
   }
+  // publish will status online
+  client.publish(willTopic, "online", true);
 }
 
 // Setup
@@ -283,14 +282,11 @@ void alarm_status_update(){
 
 // read card and send via MQTT
 void read_card_mqtt(){
-  byte readCard[4];
-
   // Read serial and sent via MQTT
   Serial.print(F("Card UID:"));
   char card_id[mfrc522.uid.size*3+1];
   memset(card_id, 0, sizeof(card_id));
   for (byte i = 0; i < mfrc522.uid.size; i++) {
-    readCard[i] = mfrc522.uid.uidByte[i];
     sprintf(&card_id[i * 3], "%02X-", mfrc522.uid.uidByte[i]);
     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
     Serial.print(mfrc522.uid.uidByte[i], HEX);
